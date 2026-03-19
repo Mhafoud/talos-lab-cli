@@ -1,0 +1,25 @@
+{
+  "servers": [
+    {
+      "name": "master",
+      "ip": "185.135.137.44",
+      "password": "ppf21KFIP4845JoYC"
+    },
+    {
+      "name": "worker1",
+      "ip": "185.250.36.197",
+      "password": "X8Qgk3i2V6RNBb0Et"
+      
+    },
+    {
+      "name": "worker2",
+      "ip": "45.67.216.224",
+      "password": "I0q497OzAGb05bRl3"
+    },
+    {
+      "name": "worker3",
+      "ip": "185.187.170.182",
+      "password": "kk496n7LUJlcVXS7k"
+    }
+  ]
+}
