@@ -18,11 +18,20 @@ var clusterCmd = &cobra.Command{
 		fmt.Println("")
 
 		// -----------------------------
+		// GET BASE PATH
+		// -----------------------------
+		basePath := os.Getenv("TALOS_LAB_HOME")
+		if basePath == "" {
+			fmt.Println("[ERROR] TALOS_LAB_HOME is not set")
+			os.Exit(1)
+		}
+
+		// -----------------------------
 		// STEP 0 - Validate config
 		// -----------------------------
 		fmt.Println("Validating configuration...")
 
-		validateCmd := exec.Command("bash", "bash_cmd/validate_config.sh")
+		validateCmd := exec.Command("bash", basePath+"/bash_cmd/validate_config.sh")
 		validateCmd.Stdout = os.Stdout
 		validateCmd.Stderr = os.Stderr
 
@@ -38,7 +47,7 @@ var clusterCmd = &cobra.Command{
 		// -----------------------------
 		// STEP 1 - Create cluster
 		// -----------------------------
-		command := exec.Command("bash", "bash_cmd/create_cluster.sh")
+		command := exec.Command("bash", basePath+"/bash_cmd/create_cluster.sh")
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
 

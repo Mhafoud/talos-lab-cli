@@ -1,22 +1,36 @@
 #!/bin/bash
 set -e
 
-# 🔥 PATH SAFE
-KUBECONFIG_FILE="$PWD/kubeconfig"
+# -----------------------------
+# CHECK ENV
+# -----------------------------
+if [ -z "$TALOS_LAB_HOME" ]; then
+  echo "[ERROR] TALOS_LAB_HOME is not set"
+  exit 1
+fi
+
+# -----------------------------
+# PATHS SAFE
+# -----------------------------
+KUBECONFIG_FILE="$TALOS_LAB_HOME/kubeconfig"
 
 if [ ! -f "$KUBECONFIG_FILE" ]; then
-  echo "kubeconfig not found. Run bootstrap script first."
+  echo "[ERROR] kubeconfig not found at $KUBECONFIG_FILE"
+  echo "Run: talos-lab create cluster first"
   exit 1
 fi
 
 echo "Checking if Cilium is already installed..."
+
 if helm list -n kube-system --kubeconfig "$KUBECONFIG_FILE" | grep -q cilium; then
   echo "Existing Cilium installation detected. Removing it..."
+
   helm uninstall cilium \
     -n kube-system \
     --kubeconfig "$KUBECONFIG_FILE"
 
   echo "Waiting for old Cilium pods to terminate..."
+
   kubectl --kubeconfig "$KUBECONFIG_FILE" \
     -n kube-system \
     delete pods -l app.kubernetes.io/name=cilium-agent \
@@ -30,6 +44,7 @@ helm repo add cilium https://helm.cilium.io/
 helm repo update
 
 echo "Installing Cilium optimized for Talos..."
+
 helm upgrade --install cilium cilium/cilium \
   --version 1.15.6 \
   --namespace kube-system \
@@ -64,6 +79,8 @@ fi
 
 echo ""
 echo "Cilium network is ready!"
+
 kubectl --kubeconfig "$KUBECONFIG_FILE" get nodes
+
 echo ""
 echo "Cluster network is ready."

@@ -1,55 +1,67 @@
 #!/bin/bash
 set -e
 
+if [ -z "$TALOS_LAB_HOME" ]; then
+  echo "[ERROR] TALOS_LAB_HOME is not set"
+  exit 1
+fi
+
 WORKER_IP=$1
 WORKER_PASSWORD=$2
 MASTER_IP=$3
 WORKER_INDEX=$4
 
 if [ -z "$WORKER_IP" ] || [ -z "$WORKER_PASSWORD" ] || [ -z "$MASTER_IP" ] || [ -z "$WORKER_INDEX" ]; then
-  echo "Usage: ./6_join_worker.sh <WORKER_IP> <PASSWORD> <MASTER_IP> <INDEX>"
+  echo "Usage: join_worker.sh <IP> <PASSWORD> <MASTER_IP> <INDEX>"
   exit 1
 fi
 
-# 🔥 PATH SAFE
-KUBECONFIG_FILE="$PWD/kubeconfig"
-TALOS_CONFIG_DIR="$PWD/talos-config"
-TALOSCONFIG_FILE="$TALOS_CONFIG_DIR/talosconfig"
-
-export TALOSCONFIG="$TALOSCONFIG_FILE"
+KUBECONFIG_FILE="$TALOS_LAB_HOME/kubeconfig"
+TALOS_CONFIG_DIR="$TALOS_LAB_HOME/talos-config"
 
 WORKER_NAME="worker-node-$WORKER_INDEX"
-TMP_CONFIG="$TALOS_CONFIG_DIR/worker-$WORKER_INDEX.yaml"
+TMP_CONFIG="$TALOS_CONFIG_DIR/$WORKER_NAME.yaml"
 
 echo "Joining worker: $WORKER_NAME ($WORKER_IP)"
 
 # -------------------------------
-# STEP 1 - install Talos
+# STEP 1 - CHECK TALOS
 # -------------------------------
 echo ""
-echo "STEP 1 - Installing Talos on worker"
+echo "STEP 1 - Checking Talos state"
 
-bash "$PWD/scripts/1_install_talos.sh" "$WORKER_IP" "$WORKER_PASSWORD"
+if talosctl version --nodes "$WORKER_IP" --endpoints "$WORKER_IP" &>/dev/null; then
+  echo "[INFO] Talos already running"
 
-# -------------------------------
-# STEP 2 - prepare config
-# -------------------------------
-echo ""
-echo "STEP 2 - Preparing worker configuration"
+elif talosctl version --nodes "$WORKER_IP" --endpoints "$WORKER_IP" --insecure &>/dev/null; then
+  echo "[INFO] Talos in maintenance mode → waiting..."
 
-if [ ! -f "$TALOS_CONFIG_DIR/worker.yaml" ]; then
-  echo "[ERROR] worker.yaml not found in talos-config/"
-  exit 1
+  until talosctl version --nodes "$WORKER_IP" --endpoints "$WORKER_IP" &>/dev/null
+  do
+    echo "Talos not ready yet..."
+    sleep 5
+  done
+
+  echo "[SUCCESS] Talos ready"
+
+else
+  echo "[INFO] Installing Talos..."
+  bash "$TALOS_LAB_HOME/scripts/1_install_talos.sh" "$WORKER_IP" "$WORKER_PASSWORD"
 fi
 
-cp "$TALOS_CONFIG_DIR/worker.yaml" "$TMP_CONFIG"
+# -------------------------------
+# STEP 2 - CONFIG
+# -------------------------------
+echo ""
+echo "STEP 2 - Preparing config"
 
+cp "$TALOS_CONFIG_DIR/worker.yaml" "$TMP_CONFIG"
 yq -i ".machine.network.hostname = \"$WORKER_NAME\"" "$TMP_CONFIG"
 
 # -------------------------------
-# STEP 3 - apply config
+# STEP 3 - APPLY
 # -------------------------------
-echo "Applying worker configuration..."
+echo "Applying config..."
 
 talosctl apply-config \
   --insecure \
@@ -57,13 +69,11 @@ talosctl apply-config \
   --endpoints "$MASTER_IP" \
   --file "$TMP_CONFIG"
 
-echo "Worker configuration applied."
-
 # -------------------------------
-# STEP 4 - wait join
+# STEP 4 - WAIT JOIN
 # -------------------------------
 echo ""
-echo "Waiting for node to join cluster..."
+echo "Waiting for join..."
 
 until kubectl --kubeconfig "$KUBECONFIG_FILE" get nodes | grep -q "$WORKER_NAME"
 do
@@ -71,14 +81,13 @@ do
   sleep 5
 done
 
-echo ""
-echo "Worker joined cluster."
+echo "Worker joined"
 
 # -------------------------------
-# STEP 5 - wait ready
+# STEP 5 - WAIT READY
 # -------------------------------
 echo ""
-echo "Waiting for node to become Ready..."
+echo "Waiting Ready..."
 
 until kubectl --kubeconfig "$KUBECONFIG_FILE" get nodes | grep "$WORKER_NAME" | grep -q Ready
 do
@@ -86,12 +95,6 @@ do
   sleep 5
 done
 
-echo ""
-echo "$WORKER_NAME is Ready!"
+echo "[SUCCESS] $WORKER_NAME Ready"
 
-kubectl --kubeconfig "$KUBECONFIG_FILE" get nodes
-
-# -------------------------------
-# CLEANUP
-# -------------------------------
 rm -f "$TMP_CONFIG"

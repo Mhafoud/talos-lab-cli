@@ -1,12 +1,19 @@
 #!/bin/bash
 set -e
 
-# 🔥 PATHS SAFE
-CONFIG_FILE="$PWD/config/servers.json"
-KUBECONFIG_FILE="$PWD/kubeconfig"
-TALOSCONFIG_FILE="$PWD/talos-config/talosconfig"
+# -----------------------------
+# CHECK ENV
+# -----------------------------
+if [ -z "$TALOS_LAB_HOME" ]; then
+  echo "[ERROR] TALOS_LAB_HOME is not set"
+  exit 1
+fi
 
-export TALOSCONFIG="$TALOSCONFIG_FILE"
+# -----------------------------
+# PATHS SAFE
+# -----------------------------
+CONFIG_FILE="$TALOS_LAB_HOME/config/servers.json"
+KUBECONFIG_FILE="$TALOS_LAB_HOME/kubeconfig"
 
 echo "Reading configuration..."
 
@@ -26,7 +33,7 @@ echo ""
 
 if [ ! -f "$KUBECONFIG_FILE" ]; then
   echo "[ERROR] kubeconfig not found at $KUBECONFIG_FILE"
-  echo "Run: talos-lab create master"
+  echo "Run: talos-lab create cluster"
   exit 1
 fi
 
@@ -64,7 +71,7 @@ do
 
       echo "Joining $WORKER_NAME..."
 
-      bash "$PWD/scripts/6_join_worker.sh" \
+      bash "$TALOS_LAB_HOME/scripts/6_join_worker.sh" \
         "$WORKER_IP" \
         "$WORKER_PASSWORD" \
         "$MASTER_IP" \

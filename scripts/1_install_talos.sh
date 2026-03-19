@@ -14,17 +14,39 @@ fi
 
 echo ""
 echo "================================="
-echo "Checking if Talos is already installed"
+echo "Checking Talos state"
 echo "================================="
 echo ""
 
+# ---------------------------------------
+# CHECK TALOS READY
+# ---------------------------------------
 if talosctl version --nodes "$VM_IP" --endpoints "$VM_IP" &>/dev/null; then
-  echo "[INFO] Talos already installed on $VM_IP"
-  echo "[INFO] Skipping installation"
+  echo "[INFO] Talos already running on $VM_IP"
   exit 0
 fi
 
-echo "[INFO] Talos not detected, proceeding with installation"
+# ---------------------------------------
+# CHECK TALOS MAINTENANCE MODE
+# ---------------------------------------
+if talosctl version --nodes "$VM_IP" --endpoints "$VM_IP" --insecure &>/dev/null; then
+  echo "[INFO] Talos detected (maintenance mode)"
+  echo "[INFO] Waiting for Talos to be ready..."
+
+  until talosctl version --nodes "$VM_IP" --endpoints "$VM_IP" &>/dev/null
+  do
+    echo "Talos not ready yet..."
+    sleep 5
+  done
+
+  echo "[SUCCESS] Talos is now ready"
+  exit 0
+fi
+
+# ---------------------------------------
+# OTHERWISE → INSTALL TALOS
+# ---------------------------------------
+echo "[INFO] Talos not detected → installing via SSH"
 echo ""
 
 echo "Connecting to $VM_IP..."
@@ -66,21 +88,21 @@ echo ""
 echo "Waiting for node to go down..."
 
 for i in $(seq 1 30); do
-
   if ! sshpass -p "$VM_PASSWORD" ssh \
     -o StrictHostKeyChecking=no \
     -o ConnectTimeout=3 \
     $VM_USER@$VM_IP "true" &>/dev/null; then
-
     echo "Node is down, reboot confirmed."
     break
   fi
 
   echo "Still reachable, waiting... ($i/30)"
   sleep 3
-
 done
 
+# ---------------------------------------
+# WAIT TALOS MAINTENANCE MODE
+# ---------------------------------------
 echo ""
 echo "Waiting for Talos maintenance mode..."
 

@@ -30,10 +30,19 @@ var destroyCmd = &cobra.Command{
 		fmt.Println("[INFO] Starting cluster destruction...")
 		fmt.Println("")
 
+		// -----------------------------
+		// GET BASE PATH
+		// -----------------------------
+		basePath := os.Getenv("TALOS_LAB_HOME")
+		if basePath == "" {
+			fmt.Println("[ERROR] TALOS_LAB_HOME is not set")
+			os.Exit(1)
+		}
+
 		// -------------------------------
 		// Exécution du script Bash
 		// -------------------------------
-		command := exec.Command("bash", "bash_cmd/destroy_cluster.sh")
+		command := exec.Command("bash", basePath+"/bash_cmd/destroy_cluster.sh")
 
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr

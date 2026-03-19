@@ -1,6 +1,13 @@
 #!/bin/bash
-
 set -e
+
+# -----------------------------
+# CHECK ENV
+# -----------------------------
+if [ -z "$TALOS_LAB_HOME" ]; then
+  echo "[ERROR] TALOS_LAB_HOME is not set"
+  exit 1
+fi
 
 MASTER_IP=$1
 
@@ -9,10 +16,11 @@ if [ -z "$MASTER_IP" ]; then
   exit 1
 fi
 
-# 🔥 PATHS SAFE
-TALOS_DIR="$PWD/talos-config"
-TALOSCONFIG_FILE="$TALOS_DIR/talosconfig"
-KUBECONFIG_FILE="$PWD/kubeconfig"
+# -----------------------------
+# PATHS SAFE
+# -----------------------------
+TALOSCONFIG_FILE="$TALOS_LAB_HOME/talos-config/talosconfig"
+KUBECONFIG_FILE="$TALOS_LAB_HOME/kubeconfig"
 
 export TALOSCONFIG="$TALOSCONFIG_FILE"
 
@@ -26,6 +34,7 @@ echo "Cluster bootstrapped."
 
 echo "Retrieving kubeconfig..."
 
+# 🔥 CORRECTION ICI
 talosctl kubeconfig "$KUBECONFIG_FILE" \
   --nodes "$MASTER_IP" \
   --endpoints "$MASTER_IP" \

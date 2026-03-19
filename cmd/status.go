@@ -17,7 +17,16 @@ var statusCmd = &cobra.Command{
 		fmt.Println("Checking cluster status...")
 		fmt.Println("")
 
-		command := exec.Command("bash", "bash_cmd/status.sh")
+		// -----------------------------
+		// GET BASE PATH
+		// -----------------------------
+		basePath := os.Getenv("TALOS_LAB_HOME")
+		if basePath == "" {
+			fmt.Println("[ERROR] TALOS_LAB_HOME is not set")
+			os.Exit(1)
+		}
+
+		command := exec.Command("bash", basePath+"/bash_cmd/status.sh")
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
 

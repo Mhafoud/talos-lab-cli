@@ -1,6 +1,10 @@
 #!/bin/bash
-
 set -e
+
+if [ -z "$TALOS_LAB_HOME" ]; then
+  echo "[ERROR] TALOS_LAB_HOME is not set"
+  exit 1
+fi
 
 MASTER_IP=$1
 
@@ -9,10 +13,7 @@ if [ -z "$MASTER_IP" ]; then
   exit 1
 fi
 
-# 🔥 IMPORTANT : chemins absolus
-TALOS_DIR="$PWD/talos-config"
-TALOSCONFIG_FILE="$TALOS_DIR/talosconfig"
-CONTROLPLANE_FILE="$TALOS_DIR/controlplane.yaml"
+TALOSCONFIG_FILE="$TALOS_LAB_HOME/talos-config/talosconfig"
 
 echo "Applying controlplane configuration..."
 
@@ -20,14 +21,11 @@ talosctl apply-config \
   --insecure \
   --nodes "$MASTER_IP" \
   --endpoints "$MASTER_IP" \
-  --file "$CONTROLPLANE_FILE"
+  --file "$TALOS_LAB_HOME/talos-config/controlplane.yaml"
 
-echo "Configuration applied."
-
-# 🔥 IMPORTANT
 export TALOSCONFIG="$TALOSCONFIG_FILE"
 
-echo "Waiting for Talos API to come back..."
+echo "Waiting for Talos API..."
 
 sleep 5
 

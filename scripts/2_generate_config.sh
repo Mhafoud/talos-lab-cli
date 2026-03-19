@@ -1,6 +1,10 @@
 #!/bin/bash
-
 set -e
+
+if [ -z "$TALOS_LAB_HOME" ]; then
+  echo "[ERROR] TALOS_LAB_HOME is not set"
+  exit 1
+fi
 
 CLUSTER_NAME=$1
 MASTER_IP=$2
@@ -10,15 +14,14 @@ if [ -z "$CLUSTER_NAME" ] || [ -z "$MASTER_IP" ]; then
   exit 1
 fi
 
-# 🔥 IMPORTANT : utiliser PWD
-CONFIG_DIR="$PWD/talos-config"
+CONFIG_DIR="$TALOS_LAB_HOME/talos-config"
 
 echo "Generating Talos configuration..."
 
 rm -rf "$CONFIG_DIR"
 mkdir -p "$CONFIG_DIR"
 
-talosctl gen config "$CLUSTER_NAME" "https://$MASTER_IP:6443" \
+talosctl gen config "$CLUSTER_NAME" https://"$MASTER_IP":6443 \
   --output-dir "$CONFIG_DIR" \
   --talos-version v1.11.6 \
   --kubernetes-version 1.29.10

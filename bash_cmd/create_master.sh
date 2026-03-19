@@ -1,9 +1,19 @@
 #!/bin/bash
 set -e
 
-# 🔥 PATHS SAFE
-CONFIG_FILE="$PWD/config/servers.json"
-KUBECONFIG_FILE="$PWD/kubeconfig"
+# -----------------------------
+# CHECK ENV
+# -----------------------------
+if [ -z "$TALOS_LAB_HOME" ]; then
+  echo "[ERROR] TALOS_LAB_HOME is not set"
+  exit 1
+fi
+
+# -----------------------------
+# PATHS SAFE
+# -----------------------------
+CONFIG_FILE="$TALOS_LAB_HOME/config/servers.json"
+KUBECONFIG_FILE="$TALOS_LAB_HOME/kubeconfig"
 
 echo "Reading configuration..."
 
@@ -36,8 +46,8 @@ fi
 # Install Talos
 # ------------------------------------------------
 
-echo "STEP 1 - Installing Talos (includes waiting for maintenance mode)"
-bash "$PWD/scripts/1_install_talos.sh" "$MASTER_IP" "$MASTER_PASSWORD"
+echo "STEP 1 - Installing Talos"
+bash "$TALOS_LAB_HOME/scripts/1_install_talos.sh" "$MASTER_IP" "$MASTER_PASSWORD"
 echo ""
 
 # ------------------------------------------------
@@ -45,7 +55,7 @@ echo ""
 # ------------------------------------------------
 
 echo "STEP 2 - Generating Talos config"
-bash "$PWD/scripts/2_generate_config.sh" "$CLUSTER_NAME" "$MASTER_IP"
+bash "$TALOS_LAB_HOME/scripts/2_generate_config.sh" "$CLUSTER_NAME" "$MASTER_IP"
 echo ""
 
 # ------------------------------------------------
@@ -53,7 +63,7 @@ echo ""
 # ------------------------------------------------
 
 echo "STEP 3 - Applying controlplane config"
-bash "$PWD/scripts/3_apply_controlplane.sh" "$MASTER_IP"
+bash "$TALOS_LAB_HOME/scripts/3_apply_controlplane.sh" "$MASTER_IP"
 echo ""
 
 # ------------------------------------------------
@@ -61,7 +71,7 @@ echo ""
 # ------------------------------------------------
 
 echo "STEP 4 - Bootstrapping cluster"
-bash "$PWD/scripts/4_bootstrap_cluster.sh" "$MASTER_IP"
+bash "$TALOS_LAB_HOME/scripts/4_bootstrap_cluster.sh" "$MASTER_IP"
 echo ""
 
 # ------------------------------------------------
@@ -69,12 +79,8 @@ echo ""
 # ------------------------------------------------
 
 echo "STEP 5 - Installing Cilium"
-bash "$PWD/scripts/5_install_cilium.sh"
+bash "$TALOS_LAB_HOME/scripts/5_install_cilium.sh"
 echo ""
-
-# ------------------------------------------------
-# FIN
-# ------------------------------------------------
 
 echo "Cluster ready!"
 

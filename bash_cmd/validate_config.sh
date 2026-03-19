@@ -2,8 +2,18 @@
 
 set -e
 
-# 🔥 PATH SAFE
-CONFIG_FILE="$PWD/config/servers.json"
+# -----------------------------
+# CHECK ENV
+# -----------------------------
+if [ -z "$TALOS_LAB_HOME" ]; then
+    echo "[ERROR] TALOS_LAB_HOME is not set"
+    exit 1
+fi
+
+# -----------------------------
+# PATH SAFE
+# -----------------------------
+CONFIG_FILE="$TALOS_LAB_HOME/config/servers.json"
 
 echo ""
 echo "================================="
