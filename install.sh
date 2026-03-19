@@ -23,41 +23,99 @@ fi
 # -----------------------------
 # INSTALL DEPENDENCIES
 # -----------------------------
+echo ""
 echo "[INFO] Installing dependencies..."
 
-install_if_missing () {
-  if ! command -v $1 &> /dev/null; then
-    echo "[INFO] Installing $1..."
-    eval $2
-  else
-    echo "[OK] $1 already installed"
-  fi
-}
+# jq
+if ! command -v jq &> /dev/null; then
+  echo "[INFO] Installing jq..."
+  sudo apt update && sudo apt install -y jq
+fi
 
-install_if_missing jq "sudo apt update && sudo apt install -y jq"
-install_if_missing sshpass "sudo apt install -y sshpass"
-install_if_missing kubectl "sudo apt install -y kubectl"
+# sshpass
+if ! command -v sshpass &> /dev/null; then
+  echo "[INFO] Installing sshpass..."
+  sudo apt install -y sshpass
+fi
 
-# yq (snap)
+# kubectl (OFFICIAL)
+if ! command -v kubectl &> /dev/null; then
+  echo "[INFO] Installing kubectl..."
+
+  curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+  chmod +x kubectl
+  sudo mv kubectl /usr/local/bin/
+fi
+
+# yq
 if ! command -v yq &> /dev/null; then
   echo "[INFO] Installing yq..."
-  sudo snap install yq
+
+  sudo wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+  sudo chmod +x /usr/local/bin/yq
 fi
 
 # helm
 if ! command -v helm &> /dev/null; then
   echo "[INFO] Installing helm..."
-  curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+  curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 fi
 
 # talosctl
 if ! command -v talosctl &> /dev/null; then
   echo "[INFO] Installing talosctl..."
+
   curl -sSL https://talos.dev/install | bash
 fi
 
+# git (important pour clone)
+if ! command -v git &> /dev/null; then
+  echo "[INFO] Installing git..."
+  sudo apt install -y git
+fi
+
+# go (pour build CLI)
+if ! command -v go &> /dev/null; then
+  echo "[INFO] Installing Go..."
+
+  wget -q https://go.dev/dl/go1.22.0.linux-amd64.tar.gz
+  sudo rm -rf /usr/local/go
+  sudo tar -C /usr/local -xzf go1.22.0.linux-amd64.tar.gz
+  echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
+  export PATH=$PATH:/usr/local/go/bin
+fi
+
 # -----------------------------
-# CLONE PROJECT
+# VERIFY DEPENDENCIES
+# -----------------------------
+echo ""
+echo "[INFO] Verifying tools..."
+
+check_tool () {
+  if ! command -v $1 &> /dev/null; then
+    echo "[ERROR] $1 installation failed"
+    exit 1
+  else
+    echo "[OK] $1 installed"
+  fi
+}
+
+check_tool jq
+check_tool sshpass
+check_tool kubectl
+check_tool yq
+check_tool helm
+check_tool talosctl
+check_tool git
+check_tool go
+
+echo ""
+echo "[SUCCESS] All dependencies installed"
+
+# -----------------------------
+# INSTALL CLI
 # -----------------------------
 echo ""
 echo "[INFO] Installing Talos Lab..."
@@ -67,15 +125,9 @@ git clone "$REPO_URL" "$INSTALL_DIR"
 
 cd "$INSTALL_DIR"
 
-# -----------------------------
-# BUILD CLI
-# -----------------------------
 echo "[INFO] Building CLI..."
 go build -o talos-lab
 
-# -----------------------------
-# INSTALL BINARY
-# -----------------------------
 echo "[INFO] Installing binary..."
 sudo mv talos-lab "$BINARY_PATH"
 
@@ -91,11 +143,24 @@ fi
 export TALOS_LAB_HOME="$INSTALL_DIR"
 
 # -----------------------------
+# FINAL CHECK
+# -----------------------------
+echo ""
+echo "[INFO] Final CLI test..."
+
+if ! command -v talos-lab &> /dev/null; then
+  echo "[ERROR] talos-lab not installed correctly"
+  exit 1
+fi
+
+echo "[SUCCESS] talos-lab is ready"
+
+# -----------------------------
 # DONE
 # -----------------------------
 echo ""
 echo "================================="
-echo "[SUCCESS] Talos Lab installed!"
+echo "[SUCCESS] Installation complete!"
 echo "================================="
 echo ""
 
@@ -103,5 +168,6 @@ echo "👉 Run:"
 echo "source ~/.bashrc"
 echo ""
 
-echo "👉 Then:"
-echo "talos-lab --help"
+echo "👉 Then create your config:"
+echo "mkdir -p ~/.talos-lab/config"
+echo "nano ~/.talos-lab/config/servers.json"
