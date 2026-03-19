@@ -1,0 +1,9 @@
+# binary
+talos-lab
+
+# local config
+kubeconfig
+talos-config/
+
+# sensitive config
+config/servers.json

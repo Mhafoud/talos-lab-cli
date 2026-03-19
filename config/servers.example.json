@@ -1,0 +1,6 @@
+{
+  "servers": [
+    { "name": "master", "ip": "X.X.X.X", "password": "password" },
+    { "name": "worker1", "ip": "X.X.X.X", "password": "password" }
+  ]
+}
