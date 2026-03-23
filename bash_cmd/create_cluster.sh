@@ -23,6 +23,22 @@ echo ""
 echo "STEP 2 - Joining all workers"
 bash "$TALOS_LAB_HOME/scripts/7_join_all_workers.sh"
 
+# -----------------------------
+# WAIT CLUSTER READY
+# -----------------------------
+echo ""
+echo "Waiting for all nodes to be Ready..."
+
+kubectl wait --for=condition=Ready nodes --all --timeout=180s
+
+# -----------------------------
+# STORAGE
+# -----------------------------
+echo ""
+echo "STEP 3 - Installing storage"
+
+bash "$TALOS_LAB_HOME/scripts/8_install_storage.sh"
+
 echo ""
 echo "================================="
 echo "Cluster successfully created!"

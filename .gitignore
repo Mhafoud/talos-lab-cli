@@ -4,6 +4,7 @@ talos-lab
 # local config
 kubeconfig
 talos-config/
+readme.md
 
 # sensitive config
 config/servers.json

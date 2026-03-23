@@ -18,6 +18,13 @@ talosctl version \
 --endpoints 185.135.137.44 \
 --insecure
 
+export TALOSCONFIG=$PWD/talos-config/talosconfig
+
+talosctl memory -n 185.250.36.197 --endpoints 185.135.137.44
+
+talosctl memory -n 45.67.216.224 --endpoints 185.135.137.44
+
+talosctl memory -n 185.187.170.182 --endpoints 185.135.137.44
 
 Master :
 
@@ -46,6 +53,7 @@ IP: 185.187.170.182
 password: kk496n7LUJlcVXS7k
 
 ssh-keygen -f "/home/issam/.ssh/known_hosts" -R "185.250.36.197"
+
 
 
 ----

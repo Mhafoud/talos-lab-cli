@@ -1,102 +1,130 @@
-# 🚀 Talos Lab CLI
+# Talos Lab CLI
 
-A powerful CLI tool to **create, manage and destroy a Talos Kubernetes cluster** automatically on remote servers.
+A CLI tool to create, manage, and destroy a Talos Kubernetes cluster on remote servers.
 
 ---
 
-## 🎯 Overview
+## Overview
 
 Talos Lab CLI allows you to:
 
-* ✅ Create a full Kubernetes cluster (Talos)
-* ✅ Bootstrap control plane automatically
-* ✅ Join worker nodes
-* ✅ Install Cilium networking
-* ✅ Check cluster status
-* ✅ Destroy cluster cleanly
+* Create a Kubernetes cluster using Talos
+* Bootstrap the control plane automatically
+* Join worker nodes
+* Install Cilium networking
+* Check cluster status
+* Destroy the cluster cleanly
 
-Everything is automated via a simple CLI.
+The tool combines a Go-based CLI with Bash automation scripts.
 
 ---
 
-## ⚙️ Prerequisites
+## Current State
 
-Before using the CLI, make sure you have:
+The project is now functional and usable:
+
+* CLI commands are working (create, validate, status, destroy)
+* Cluster creation is automated end-to-end
+* Worker join logic is stable
+* Installation script available via curl
+* Supports password-based SSH
+* Initial support for SSH key authentication added
+
+---
+
+## Prerequisites
+
+Before installing the CLI, the following tools must already be installed:
 
 * Linux (Ubuntu/Debian recommended)
-* `kubectl`
-* `talosctl`
-* `jq`
-* `yq`
-* `helm`
-* `sshpass`
-* `go` (only for building)
+* kubectl
+* talosctl
+* jq
+* yq
+* helm
+* sshpass (only if using password authentication)
+* git
+* go (used to build the CLI)
 
-👉 Future versions will install these automatically.
+The install script will verify these dependencies.
 
 ---
 
-## 📦 Installation (Manual)
+## Installation
 
-Clone the repository:
-
-```bash
-git clone https://github.com/Mhafoud/talos-lab-cli.git
-cd talos-lab-cli
-```
-
-Build the CLI:
+Install the CLI from anywhere:
 
 ```bash
-go build -o talos-lab
-```
-
-Move binary:
-
-```bash
-sudo mv talos-lab /usr/local/bin/
-```
-
-Set environment variable:
-
-```bash
-echo 'export TALOS_LAB_HOME=$(pwd)' >> ~/.bashrc
+curl -sSL https://raw.githubusercontent.com/Mhafoud/talos-lab-cli/main/install.sh | bash
 source ~/.bashrc
 ```
 
----
-
-## 🧩 Configuration
-
-Create your cluster configuration:
+Verify installation:
 
 ```bash
-cp config/servers.example.json config/servers.json
-nano config/servers.json
+talos-lab --help
 ```
 
-Example:
+---
+
+## Configuration
+
+The CLI expects the configuration file at:
+
+```bash
+~/.talos-lab/config/servers.json
+```
+
+Create it:
+
+```bash
+mkdir -p ~/.talos-lab/config
+nano ~/.talos-lab/config/servers.json
+```
+
+### Example (password authentication)
 
 ```json
 {
   "servers": [
     {
       "name": "master",
-      "ip": "X.X.X.X",
-      "password": "root_password"
+      "ip": "IP_MASTER",
+      "password": "PASSWORD_MASTER"
     },
     {
       "name": "worker1",
-      "ip": "X.X.X.X",
-      "password": "root_password"
+      "ip": "IP_WORKER",
+      "password": "PASSWORD_WORKER"
     }
   ]
 }
 ```
 
+### Example (SSH key authentication)
+
+```json
+
+{
+  "servers": [
+    {
+      "name": "master",
+      "ip": "IP_MASTER",
+      "user": "root"
+    },
+    {
+      "name": "worker1",
+      "ip": "IP_WORKER",
+      "user": "root"
+    }
+  ]
+}
+
+```
+
 ---
 
-## 🚀 Usage
+## Usage
 
 ### Validate configuration
 
@@ -112,13 +140,14 @@ talos-lab validate config
 talos-lab create cluster
 ```
 
-This will:
+This process will:
 
 1. Install Talos on nodes
-2. Generate configuration
-3. Bootstrap Kubernetes
-4. Install Cilium
-5. Join workers
+2. Generate Talos configuration
+3. Apply control plane configuration
+4. Bootstrap Kubernetes
+5. Install Cilium
+6. Join worker nodes
 
 ---
 
@@ -136,24 +165,31 @@ talos-lab status
 talos-lab destroy
 ```
 
+This will:
+
+* Reset all nodes
+* Clean SSH known_hosts
+* Remove local Talos and kubeconfig files
+
 ---
 
-## 📁 Project Structure
+## Project Structure
 
-```text
+```
 .
 ├── cmd/                # Go CLI commands
 ├── bash_cmd/           # High-level orchestration scripts
 ├── scripts/            # Low-level infrastructure scripts
-├── config/             # Cluster configuration
+├── config/             # Example configuration files
+├── install.sh          # CLI installer
 ├── main.go             # CLI entrypoint
 ```
 
 ---
 
-## 🧠 How It Works
+## How It Works
 
-```text
+```
 CLI (Go)
    ↓
 Bash orchestration
@@ -163,52 +199,43 @@ Talos + Kubernetes
 
 ---
 
-## ⚠️ Notes
+## Known Limitations
 
-* The cluster may take a few minutes to become fully ready
-* Workers may appear as `NotReady` temporarily
-* Re-running commands is safe (idempotent behavior)
-
----
-
-## 🧹 Cleanup
-
-Destroy everything:
-
-```bash
-talos-lab destroy
-```
-
-This will:
-
-* Reset Talos nodes
-* Clean SSH known_hosts
-* Remove local configs
+* Networking configuration is currently hardcoded and may not work on all providers
+* No automatic detection of cloud-specific networking (Hetzner, AWS, etc.)
+* No interactive configuration generation yet
+* Requires manual dependency installation
 
 ---
 
-## 🚧 Roadmap
+## Roadmap
 
-* [ ] Automatic dependency installation
-* [ ] Full Go implementation (replace bash)
-* [ ] GitHub releases (binary download)
-* [ ] Multi-platform support
-* [ ] Cluster scaling command
+Planned improvements:
 
----
-
-## 🤝 Contributing
-
-Feel free to contribute or open issues!
+* Add `talos-lab init` command to generate configuration automatically
+* Improve SSH support (full SSH key + user handling across all scripts)
+* Remove dependency on Go (prebuilt binary distribution)
+* Replace Bash scripts with full Go implementation
+* Add support for multiple cloud providers
+* Add cluster scaling command
+* Improve error handling and user feedback
 
 ---
 
-## 📄 License
+## Security Notes
+
+* Never commit real credentials to the repository
+* Use `servers.example.json` for sharing configuration templates
+* Always rotate credentials if exposed
+
+---
+
+## License
 
 MIT License
 
 ---
 
-## 🔥 Author
+## Author
 
-Built by Issam 🚀
+Issam
