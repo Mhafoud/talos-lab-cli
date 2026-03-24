@@ -8,7 +8,7 @@ VM_USER="root"
 NODE_HOSTNAME="master-node"
 
 if [ -z "$VM_IP" ] || [ -z "$VM_PASSWORD" ]; then
-  echo "Usage: install_talos.sh <IP> <PASSWORD>"
+  echo "[ERROR] Usage: install_talos.sh <IP> <PASSWORD>"
   exit 1
 fi
 
@@ -27,11 +27,10 @@ if talosctl version --nodes "$VM_IP" --endpoints "$VM_IP" &>/dev/null; then
 fi
 
 # ---------------------------------------
-# CHECK TALOS MAINTENANCE MODE
+# CHECK MAINTENANCE MODE
 # ---------------------------------------
 if talosctl version --nodes "$VM_IP" --endpoints "$VM_IP" --insecure &>/dev/null; then
-  echo "[INFO] Talos detected (maintenance mode)"
-  echo "[INFO] Waiting for Talos to be ready..."
+  echo "[INFO] Talos in maintenance mode"
 
   until talosctl version --nodes "$VM_IP" --endpoints "$VM_IP" &>/dev/null
   do
@@ -39,17 +38,15 @@ if talosctl version --nodes "$VM_IP" --endpoints "$VM_IP" --insecure &>/dev/null
     sleep 5
   done
 
-  echo "[SUCCESS] Talos is now ready"
+  echo "[SUCCESS] Talos ready"
   exit 0
 fi
 
 # ---------------------------------------
-# OTHERWISE → INSTALL TALOS
+# INSTALL TALOS
 # ---------------------------------------
-echo "[INFO] Talos not detected → installing via SSH"
+echo "[INFO] Installing Talos on $VM_IP"
 echo ""
-
-echo "Connecting to $VM_IP..."
 
 sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no \
   -o ServerAliveInterval=5 \
@@ -58,10 +55,8 @@ sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no \
 
 set -e
 
-echo "Disabling IPv6..."
 sysctl -w net.ipv6.conf.all.disable_ipv6=1
 
-echo "Installing boot-to-talos..."
 curl -4 -sSL https://github.com/cozystack/boot-to-talos/raw/refs/heads/main/hack/install.sh | sh
 
 INTERFACE=\$(ip -o -4 route show to default | awk '{print \$5}')
@@ -69,50 +64,38 @@ IP=\$(hostname -I | awk '{print \$1}')
 GATEWAY=\$(ip route | grep default | awk '{print \$3}')
 NETMASK="255.255.254.0"
 
-echo "Starting Talos installation..."
-
 boot-to-talos \
   -mode install \
   -disk /dev/sda \
   -yes \
   -extra-kernel-arg "ip=\${IP}::\${GATEWAY}:\${NETMASK}:${NODE_HOSTNAME}:\${INTERFACE}:none"
 
-echo "Rebooting system..."
 reboot -f
 
 EOF
 
-echo "SSH session closed (reboot in progress)"
+echo "Waiting reboot..."
 
-echo ""
-echo "Waiting for node to go down..."
-
-for i in $(seq 1 30); do
+for i in {1..30}; do
   if ! sshpass -p "$VM_PASSWORD" ssh \
     -o StrictHostKeyChecking=no \
     -o ConnectTimeout=3 \
     $VM_USER@$VM_IP "true" &>/dev/null; then
-    echo "Node is down, reboot confirmed."
+    echo "Node rebooted"
     break
   fi
-
-  echo "Still reachable, waiting... ($i/30)"
   sleep 3
 done
 
-# ---------------------------------------
-# WAIT TALOS MAINTENANCE MODE
-# ---------------------------------------
-echo ""
-echo "Waiting for Talos maintenance mode..."
+echo "Waiting Talos maintenance mode..."
 
 until talosctl version \
   --nodes "$VM_IP" \
   --endpoints "$VM_IP" \
   --insecure 2>&1 | grep -q "maintenance mode"
 do
-  echo "Talos not ready yet..."
+  echo "Talos not ready..."
   sleep 5
 done
 
-echo "Talos is in maintenance mode, ready for configuration!"
+echo "[SUCCESS] Talos ready for config"

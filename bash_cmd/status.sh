@@ -1,19 +1,44 @@
 #!/bin/bash
+
 set -e
 
 # -----------------------------
-# CHECK ENV
+# GLOBAL INIT
 # -----------------------------
 if [ -z "$TALOS_LAB_HOME" ]; then
-  echo "[ERROR] TALOS_LAB_HOME is not set"
-  exit 1
+  export TALOS_LAB_HOME="$(pwd)"
 fi
 
-# -----------------------------
-# PATHS SAFE
-# -----------------------------
 KUBECONFIG_FILE="$TALOS_LAB_HOME/kubeconfig"
 
+# -----------------------------
+# COLORS
+# -----------------------------
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+YELLOW="\033[1;33m"
+BLUE="\033[0;34m"
+NC="\033[0m"
+
+step() {
+  echo -e "${YELLOW}[STEP]${NC} $1"
+}
+
+ok() {
+  echo -e "${GREEN}[OK]${NC} $1"
+}
+
+warn() {
+  echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+info() {
+  echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+# -----------------------------
+# HEADER
+# -----------------------------
 echo ""
 echo "================================="
 echo "Talos Lab Cluster Status"
@@ -21,21 +46,54 @@ echo "================================="
 echo ""
 
 # -----------------------------
-# CHECK CLUSTER
+# CHECK CONFIG
 # -----------------------------
+step "Checking configuration"
+
 if [ ! -f "$KUBECONFIG_FILE" ]; then
-  echo "[ERROR] Cluster not initialized yet."
-  echo "Run: talos-lab create cluster"
-  exit 1
+  warn "No kubeconfig found → cluster not created"
+  echo ""
+  echo "👉 Run: talos-lab create cluster"
+  exit 0
 fi
 
+ok "kubeconfig detected"
+
+export KUBECONFIG="$KUBECONFIG_FILE"
+
 # -----------------------------
-# STATUS
+# CHECK API (SMART)
 # -----------------------------
-echo "[INFO] Nodes:"
-kubectl --kubeconfig "$KUBECONFIG_FILE" get nodes
+step "Checking cluster access"
+
+if ! kubectl get nodes >/dev/null 2>&1; then
+  warn "Cluster exists but API not reachable"
+  echo ""
+  echo "Possible reasons:"
+  echo "- Cluster is starting"
+  echo "- Network issue"
+  echo "- Wrong kubeconfig"
+  echo ""
+  echo "Try:"
+  echo "kubectl get nodes"
+  exit 0
+fi
+
+ok "Cluster reachable"
+
+# -----------------------------
+# SHOW STATUS
+# -----------------------------
+echo ""
+info "Nodes:"
+kubectl get nodes
 echo ""
 
-echo "[INFO] System Pods:"
-kubectl --kubeconfig "$KUBECONFIG_FILE" -n kube-system get pods
+info "System Pods:"
+kubectl -n kube-system get pods
+echo ""
+
+echo -e "${GREEN}=================================${NC}"
+echo -e "${GREEN} Cluster is RUNNING              ${NC}"
+echo -e "${GREEN}=================================${NC}"
 echo ""

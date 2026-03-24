@@ -3,6 +3,18 @@
 set -e
 
 # -----------------------------
+# KUBECONFIG (CRITIQUE)
+# -----------------------------
+if [ -z "$TALOS_LAB_HOME" ]; then
+  echo "[ERROR] TALOS_LAB_HOME is not set"
+  exit 1
+fi
+
+export KUBECONFIG="$TALOS_LAB_HOME/kubeconfig"
+
+echo "[INFO] Using kubeconfig: $KUBECONFIG"
+
+# -----------------------------
 # COLORS
 # -----------------------------
 GREEN="\033[0;32m"
@@ -137,16 +149,6 @@ else
 fi
 
 echo -e "${GREEN}Storage test successful${NC}"
-
-# -----------------------------
-# SHOW STATUS (IMPORTANT)
-# -----------------------------
-echo ""
-echo -e "${BLUE}Test resources status:${NC}"
-
-kubectl get pvc test-pvc
-kubectl get pv | grep test-pvc || true
-kubectl get pod test-pod
 
 # -----------------------------
 # CLEAN TEST
